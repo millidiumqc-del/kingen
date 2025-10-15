@@ -3,17 +3,21 @@
 const { query, checkRoles, createSessionCookie, generateToken } = require('../utils/db');
 const { PERM_ROLES, MANAGER_ROLES, fetch, querystring, getGuildIdFromInvite } = require('../utils/db');
 
+// --- Configuration ---
+// Ces valeurs sont lues depuis les variables d'environnement Netlify
 const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID;
 const DISCORD_CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
 const DISCORD_BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
 const REDIRECT_URI = 'https://kinggenshub.netlify.app/.netlify/functions/auth_callback'; 
-let TARGET_GUILD_ID = process.env.TARGET_GUILD_ID; // Utilisé comme fallback si l'ENV est vide
+let TARGET_GUILD_ID = process.env.TARGET_GUILD_ID;
 
 exports.handler = async (event) => {
     const { code } = event.queryStringParameters;
-    if (!code) return { statusCode: 302, headers: { 'Location': '/error.html' }, body: '' };
+    if (!code) {
+        return { statusCode: 302, headers: { 'Location': '/error.html' }, body: '' };
+    }
 
-    // Tente de trouver l'ID du serveur si la variable d'ENV est manquante
+    // Tente de trouver l'ID du serveur si la variable d'ENV est manquante (utile pour le débogage)
     if (!TARGET_GUILD_ID) {
         TARGET_GUILD_ID = await getGuildIdFromInvite();
         if (!TARGET_GUILD_ID) {
@@ -22,7 +26,9 @@ exports.handler = async (event) => {
         }
     }
 
+    // Démarrer la transaction PostgreSQL
     await query('BEGIN'); 
+    
     try {
         // 1. Échange du code pour le jeton d'accès
         const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
@@ -43,16 +49,20 @@ exports.handler = async (event) => {
         if (!access_token) throw new Error('Failed to get access token');
 
         // 2. Récupération des infos utilisateur (via OAuth)
-        const userResponse = await fetch('https://discord.com/api/users/@me', { headers: { 'Authorization': `Bearer ${access_token}` } });
+        const userResponse = await fetch('https://discord.com/api/users/@me', { 
+            headers: { 'Authorization': `Bearer ${access_token}` } 
+        });
         const user = await userResponse.json();
 
         // 3. Vérification de l'adhésion au serveur et des rôles (via Token BOT)
+        // C'est l'étape qui échoue si le Bot Token ou l'ID du serveur est incorrect, 
+        // ou si le bot n'a pas les intents/permissions.
         const memberResponse = await fetch(`https://discord.com/api/v10/guilds/${TARGET_GUILD_ID}/members/${user.id}`, {
             headers: { 'Authorization': `Bot ${DISCORD_BOT_TOKEN}` }
         });
         
         if (memberResponse.status === 404) {
-            // L'utilisateur n'est pas membre du serveur -> REDIRECTION VERS L'ERREUR
+            // L'utilisateur n'est pas membre du serveur (ou le bot ne peut pas le voir)
             await query('ROLLBACK');
             return {
                 statusCode: 302,
@@ -64,7 +74,7 @@ exports.handler = async (event) => {
         const memberData = await memberResponse.json();
         const roles = memberData.roles || [];
 
-        // 4. Détermination du statut et des grades
+        // 4. Détermination du statut (Perm/Free)
         const roleStatus = checkRoles(roles, PERM_ROLES) ? 'Perm' : 'Free';
         const isManager = checkRoles(roles, MANAGER_ROLES);
         
@@ -76,6 +86,7 @@ exports.handler = async (event) => {
         const sessionToken = generateToken();
         const sessionExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); 
 
+        // Insérer/Mettre à jour l'utilisateur dans la table 'users'
         await query(`
             INSERT INTO users (discord_id, username, avatar_url, role_status, is_manager) 
             VALUES ($1, $2, $3, $4, $5)
@@ -83,15 +94,15 @@ exports.handler = async (event) => {
             SET username = $2, avatar_url = $3, role_status = $4, is_manager = $5;
         `, [user.id, user.username, avatarUrl, roleStatus, isManager]);
 
+        // Supprimer et Créer la session
         await query('DELETE FROM sessions WHERE discord_id = $1', [user.id]);
-
         await query('INSERT INTO sessions (token, discord_id, expires_at) VALUES ($1, $2, $3)', 
             [sessionToken, user.id, sessionExpiry.toISOString()]
         );
         
-        await query('COMMIT'); 
+        await query('COMMIT'); // Confirmer la transaction DB
 
-        // 6. Redirection avec cookie de session
+        // 6. Redirection vers la page principale avec le cookie de session
         return {
             statusCode: 302,
             headers: { 
@@ -102,6 +113,7 @@ exports.handler = async (event) => {
         };
 
     } catch (error) {
+        // En cas d'échec d'une étape critique, annuler les changements DB et rediriger vers l'erreur.
         await query('ROLLBACK'); 
         console.error('Full OAuth Flow Error:', error);
         return { statusCode: 302, headers: { 'Location': '/error.html' }, body: '' };
