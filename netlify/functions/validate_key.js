@@ -2,14 +2,12 @@
 
 const { query } = require('../utils/db');
 
-// --- Scripts codés en dur pour la vérification du PlaceId ---
-// NOTE: Vous pourriez rendre cela dynamique via une table 'place_scripts'
-// pour le moment, le backend détermine quel script l'utilisateur doit recevoir.
+// --- Scripts codés en dur ---
 const gameScripts = {
-    // Les valeurs sont le contenu du script (ou des URLs que le Lua doit fetch, mais le contenu est plus rapide)
+    // Remplacer les chaînes par le contenu réel de vos scripts Lua
     "16656664443": "print('--- KingGen Script for Place 16656664443 Loaded ---')\n--[Le script SADSADSAD complet ici]",
     "110866861848433": "print('--- KingGen Script for Place 110866861848433 Loaded ---')\n--[Le script 22222222 complet ici]",
-    // ... (Ajouter tous les autres PlaceIds et leurs contenus de scripts correspondants)
+    // ... (Ajouter tous les autres PlaceIds et leurs contenus)
 };
 
 exports.handler = async (event) => {
@@ -49,20 +47,15 @@ exports.handler = async (event) => {
             if (expirationTime < new Date()) {
                 return { statusCode: 200, body: JSON.stringify({ valid: false, message: 'Key has expired (24h limit). Please get a new key from the website.' }) };
             }
-            // Clé Free valide
         } 
         
         else if (keyType === 'Perm') {
             if (!keyData.roblox_user_id) {
                 // Première utilisation: Lier la clé à l'ID Roblox
                 await query('UPDATE keys_permanent SET roblox_user_id = $1 WHERE key_value = $2', [robloxUserId, key]);
-                // NOTE: L'ancien script voulait un message spécifique ici (Autoload: Contact owner for claim.)
-                // Nous allons simplement retourner le script
             } else if (keyData.roblox_user_id !== robloxUserId) {
-                // Clé déjà liée à un autre ID
                 return { statusCode: 200, body: JSON.stringify({ valid: false, message: 'Key is already linked to a different Roblox account.' }) };
             }
-            // Clé Perm valide
         }
 
         // 4. Récupération du script
