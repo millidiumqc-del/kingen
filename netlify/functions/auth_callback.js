@@ -1,28 +1,28 @@
 // Fichier: netlify/functions/auth_callback.js
 
-const fetch = require('node-fetch');
-const querystring = require('querystring');
-const { query, checkRoles, createSessionCookie, generateToken, PERM_ROLES, MANAGER_ROLES } = require('../utils/db');
+const { query, checkRoles, createSessionCookie, generateToken } = require('../utils/db');
+const { PERM_ROLES, MANAGER_ROLES, fetch, querystring, getGuildIdFromInvite } = require('../utils/db');
 
-// Configuration - Récupération depuis les variables d'environnement Netlify
 const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID;
 const DISCORD_CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
 const DISCORD_BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
-const TARGET_GUILD_ID = process.env.TARGET_GUILD_ID;
-const REDIRECT_URI = 'https://kinggenshub.netlify.app/.netlify/functions/auth_callback'; // Doit correspondre à l'App Discord
+const REDIRECT_URI = 'https://kinggenshub.netlify.app/.netlify/functions/auth_callback'; 
+let TARGET_GUILD_ID = process.env.TARGET_GUILD_ID; // Utilisé comme fallback si l'ENV est vide
 
 exports.handler = async (event) => {
     const { code } = event.queryStringParameters;
-    if (!code) {
-        return { statusCode: 302, headers: { 'Location': '/error.html' }, body: '' };
+    if (!code) return { statusCode: 302, headers: { 'Location': '/error.html' }, body: '' };
+
+    // Tente de trouver l'ID du serveur si la variable d'ENV est manquante
+    if (!TARGET_GUILD_ID) {
+        TARGET_GUILD_ID = await getGuildIdFromInvite();
+        if (!TARGET_GUILD_ID) {
+            console.error("CRITICAL: TARGET_GUILD_ID is not set and could not be found.");
+            return { statusCode: 500, headers: { 'Location': '/error.html' }, body: '' };
+        }
     }
 
-    let user;
-    let roles = [];
-    
-    // Démarre une transaction pour garantir que l'utilisateur et la session sont mis à jour ensemble
     await query('BEGIN'); 
-
     try {
         // 1. Échange du code pour le jeton d'accès
         const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
@@ -43,10 +43,8 @@ exports.handler = async (event) => {
         if (!access_token) throw new Error('Failed to get access token');
 
         // 2. Récupération des infos utilisateur (via OAuth)
-        const userResponse = await fetch('https://discord.com/api/users/@me', { 
-            headers: { 'Authorization': `Bearer ${access_token}` } 
-        });
-        user = await userResponse.json();
+        const userResponse = await fetch('https://discord.com/api/users/@me', { headers: { 'Authorization': `Bearer ${access_token}` } });
+        const user = await userResponse.json();
 
         // 3. Vérification de l'adhésion au serveur et des rôles (via Token BOT)
         const memberResponse = await fetch(`https://discord.com/api/v10/guilds/${TARGET_GUILD_ID}/members/${user.id}`, {
@@ -54,7 +52,7 @@ exports.handler = async (event) => {
         });
         
         if (memberResponse.status === 404) {
-            // L'utilisateur n'est pas membre du serveur
+            // L'utilisateur n'est pas membre du serveur -> REDIRECTION VERS L'ERREUR
             await query('ROLLBACK');
             return {
                 statusCode: 302,
@@ -64,7 +62,7 @@ exports.handler = async (event) => {
         }
         
         const memberData = await memberResponse.json();
-        roles = memberData.roles || [];
+        const roles = memberData.roles || [];
 
         // 4. Détermination du statut et des grades
         const roleStatus = checkRoles(roles, PERM_ROLES) ? 'Perm' : 'Free';
@@ -76,9 +74,8 @@ exports.handler = async (event) => {
 
         // 5. Mise à jour de la DB et création de la session
         const sessionToken = generateToken();
-        const sessionExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // Session de 7 jours
+        const sessionExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); 
 
-        // Insérer ou mettre à jour l'utilisateur (PostgreSQL ON CONFLICT)
         await query(`
             INSERT INTO users (discord_id, username, avatar_url, role_status, is_manager) 
             VALUES ($1, $2, $3, $4, $5)
@@ -86,15 +83,13 @@ exports.handler = async (event) => {
             SET username = $2, avatar_url = $3, role_status = $4, is_manager = $5;
         `, [user.id, user.username, avatarUrl, roleStatus, isManager]);
 
-        // Supprimer les anciennes sessions pour cet utilisateur
         await query('DELETE FROM sessions WHERE discord_id = $1', [user.id]);
 
-        // Créer la nouvelle session
         await query('INSERT INTO sessions (token, discord_id, expires_at) VALUES ($1, $2, $3)', 
             [sessionToken, user.id, sessionExpiry.toISOString()]
         );
         
-        await query('COMMIT'); // Commit la transaction
+        await query('COMMIT'); 
 
         // 6. Redirection avec cookie de session
         return {
@@ -107,7 +102,6 @@ exports.handler = async (event) => {
         };
 
     } catch (error) {
-        // Gérer les erreurs (DB ou API Discord)
         await query('ROLLBACK'); 
         console.error('Full OAuth Flow Error:', error);
         return { statusCode: 302, headers: { 'Location': '/error.html' }, body: '' };
