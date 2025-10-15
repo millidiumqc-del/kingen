@@ -1,9 +1,13 @@
+// Fichier: js/app.js
+
 document.addEventListener('DOMContentLoaded', () => {
-    // --- Global Configuration (Must match Netlify ENV) ---
+    // --- Global Configuration (Must match Netlify ENV and Discord App) ---
     const DISCORD_CLIENT_ID = '1427682761644183735';
     const REDIRECT_URI = 'https://kinggenshub.netlify.app/.netlify/functions/auth_callback';
     const LINKVERTISE_URL = 'https://link-hub.net/1409420/j5AokQm937Cf';
     const LINKVERTISE_BYPASS_TOKEN = '91329eb4ca547acfb1116bf5b34248cdfed5b4c805bbdd4d7d63fb86416a9e47';
+    
+    let hasClickedLink = false; // État côté client pour la validation Linkvertise
 
     // --- Utility Functions ---
 
@@ -12,7 +16,6 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch('/.netlify/functions/get_user_data');
             if (response.status === 401) {
-                // Not authenticated, redirect to login
                 if (window.location.pathname !== '/index.html') {
                     window.location.href = 'index.html';
                 }
@@ -21,7 +24,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return response.json();
         } catch (error) {
             console.error('Fetch User Data Error:', error);
-            // Fallback for network error
             return null;
         }
     }
@@ -57,10 +59,9 @@ document.addEventListener('DOMContentLoaded', () => {
             userStatusEl.textContent = `(${role_status})`;
             userStatusEl.className = `status text-${role_status.toLowerCase()}`;
         }
-        // Assuming /images/default_avatar.png exists
         if (userAvatarEl) userAvatarEl.src = avatar_url || '/images/default_avatar.png';
 
-        // Manager Button Logic
+        // Manager Button Logic (Visible en dessous de Disconnect)
         if (is_manager && manageKeysBtn) {
             manageKeysBtn.style.display = 'block';
             manageKeysBtn.onclick = () => window.location.href = 'manage_keys.html';
@@ -84,10 +85,10 @@ document.addEventListener('DOMContentLoaded', () => {
             handleSuggestionPage();
         } else if (window.location.pathname.includes('manage_keys.html')) {
             if (!is_manager) {
-                // If not manager, redirect to error page
+                // Rediriger si non manager
                 window.location.href = '/error.html?msg=not_manager';
             } else {
-                handleManageKeysPage();
+                handleManageKeysPage(userData);
             }
         }
     }
@@ -105,20 +106,18 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             permSection.style.display = 'none';
             freeSection.style.display = 'block';
-            handleFreeKeyLogic(userData);
+            handleFreeKeyLogic();
         }
     }
 
     /** Logic for Free users (Linkvertise and 24h key). */
-    function handleFreeKeyLogic(userData) {
+    function handleFreeKeyLogic() {
         const linkvertiseLink = document.getElementById('linkvertiseLink');
         const getKeyBtn = document.getElementById('getKeyBtn');
         const statusMessage = document.getElementById('keyStatusMessage');
         const keyDisplay = document.getElementById('keyDisplay');
         const currentKeyInput = document.getElementById('currentKey');
         const expirationTimer = document.getElementById('expirationTimer');
-        
-        let hasClickedLink = false;
         
         // 1. Configure Linkvertise Button
         linkvertiseLink.href = LINKVERTISE_URL;
@@ -140,7 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
             statusMessage.textContent = 'Validating Linkvertise completion and generating key...';
             statusMessage.className = 'text-muted';
 
-            // Send the Anti-Bypass Token to the backend for verification
+            // Appel API pour VALIDER ET GÉNÉRER la clé, en envoyant le TOKEN ANTI-BYPASS
             const keyResponse = await fetch('/.netlify/functions/generate_free_key', { 
                 method: 'POST', 
                 headers: { 'Content-Type': 'application/json' },
@@ -151,7 +150,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (keyResponse.ok && keyData.key) {
                 currentKeyInput.value = keyData.key;
-                keyDisplay.style.display = 'flex'; // Use flex for layout
+                keyDisplay.style.display = 'flex';
                 statusMessage.textContent = 'Temporary key accepted! Valid for 24 hours.';
                 statusMessage.className = 'text-success';
                 expirationTimer.textContent = `Expires at: ${new Date(keyData.expires_at).toLocaleString()}`;
@@ -173,15 +172,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const linkedRobloxIDEl = document.getElementById('linkedRobloxID');
         const cooldownMessageEl = document.getElementById('cooldownMessage');
         const resetBtn = document.getElementById('resetRobloxBtn');
+        
+        // Fetch the user's Perm key details (must implement get_perm_key_details API)
+        // Note: For simplicity, we use get_user_data which might already contain some details
+        // In a real app, you need a dedicated API to check link and cooldown.
 
-        // Fetch the user's Perm key details for linked ID and cooldown status
-        const detailsResponse = await fetch('/.netlify/functions/get_perm_key_details'); // Assume we have this API
-        const details = await detailsResponse.json(); 
-
-        if (details.error) {
-            cooldownMessageEl.textContent = 'Error fetching key details.';
-            return;
-        }
+        // SIMULATION: Fetch the Perm key data
+        const detailsResponse = await fetch('/.netlify/functions/get_perm_key_details'); 
+        const details = detailsResponse.ok ? await detailsResponse.json() : {}; 
 
         linkedRobloxIDEl.textContent = details.roblox_user_id || 'Not Linked (Will link on first script execution)';
         
@@ -196,7 +194,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             // Ready to reset
             resetBtn.disabled = false;
-            cooldownMessageEl.textContent = 'You can reset your linked Roblox ID now.';
+            cooldownMessageEl.textContent = 'You can reset your linked Roblox ID now. (7-day cooldown applies)';
             cooldownMessageEl.className = 'text-perm';
             
             resetBtn.onclick = async () => {
@@ -219,8 +217,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- MANAGER LOGIC HANDLERS ---
 
     /** Logic for the Manage Keys page. */
-    async function handleManageKeysPage() {
-        // --- 1. Fetching Data ---
+    async function handleManageKeysPage(userData) {
         const [freeResponse, permResponse] = await Promise.all([
             fetch('/.netlify/functions/get_all_free_keys'),
             fetch('/.netlify/functions/get_all_perm_keys')
@@ -232,7 +229,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const freeTableBody = document.getElementById('freeKeysTableBody');
         const permTableBody = document.getElementById('permKeysTableBody');
 
-        // --- 2. Render Functions ---
+        // --- Render Functions (Uses closure to manage keys) ---
         function renderKeys(keys, tableBody, isPerm) {
             tableBody.innerHTML = '';
             if (keys.length === 0) {
@@ -272,7 +269,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         });
                         if (updateResponse.ok) {
                             alert('Roblox ID updated.');
-                            // Simple update of the UI row
                             row.cells[2].textContent = newId || 'N/A'; 
                         } else {
                             alert('Error updating Roblox ID.');
@@ -286,7 +282,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 deleteBtn.textContent = isPerm ? 'Delete' : 'Delete/Invalidate';
                 deleteBtn.className = 'action-btn delete-btn';
                 deleteBtn.onclick = async () => {
-                    if (confirm(`Are you sure you want to delete the key ${key.key_value}? This action is irreversible.`)) {
+                    if (confirm(`Are you sure you want to delete the key ${key.key_value}? This action is irreversible and will invalidate the key.`)) {
                         const deleteResponse = await fetch('/.netlify/functions/delete_key', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -318,6 +314,7 @@ document.addEventListener('DOMContentLoaded', () => {
              const response = await fetch('/.netlify/functions/add_perm_key', {
                  method: 'POST',
                  headers: { 'Content-Type': 'application/json' },
+                 // Note: We send the manager's Discord ID as a placeholder for now
                  body: JSON.stringify({ key_value: key, roblox_user_id: robloxID || null, discord_id: userData.discord_id }),
              });
              
@@ -327,7 +324,7 @@ document.addEventListener('DOMContentLoaded', () => {
                  statusEl.className = 'text-success';
                  document.getElementById('newPermKey').value = '';
                  document.getElementById('initialRobloxID').value = '';
-                 handleManageKeysPage(); // Refresh table
+                 handleManageKeysPage(userData); // Refresh table
              } else {
                  statusEl.textContent = data.message || 'Error adding key.';
                  statusEl.className = 'text-free';
