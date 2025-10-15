@@ -10,7 +10,6 @@ const querystring = require('querystring');
 const PERM_ROLES = ['869611811962511451', '1426871180282822757', '869611883836104734', '877989445725483009', '869612027897839666', '1421439929052954674', '1426774369711165501', '1422640196020867113', '877904473983447101'];
 const MANAGER_ROLES = ['869611811962511451', '877989445725483009'];
 
-// Le pool utilise process.env.DATABASE_URL de Neon
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
 async function query(sql, params = []) {
@@ -59,13 +58,12 @@ function checkRoles(userRoles, targetRoles) {
 function createSessionCookie(token) {
     return cookie.serialize('session', token, {
         httpOnly: true,
-        // The secure flag should be TRUE in production (Netlify uses HTTPS)
+        // OBLIGATOIREMENT TRUE POUR SAMESITE=NONE
         secure: true, 
-        sameSite: 'Lax',
-        maxAge: 7 * 24 * 60 * 60, // 7 days
+        // FIX FINAL : Permet au cookie d'être envoyé après la redirection Discord (Cross-Site)
+        sameSite: 'None', 
+        maxAge: 7 * 24 * 60 * 60, 
         path: '/',
-        // FINAL FIX: Explicitly setting the domain to ensure the browser sends the cookie back
-        domain: 'kinggenshub.netlify.app' 
     });
 }
 
