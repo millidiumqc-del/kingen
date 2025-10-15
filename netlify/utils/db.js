@@ -4,6 +4,7 @@ const { Pool } = require('@neondatabase/serverless');
 const cookie = require('cookie');
 const crypto = require('crypto');
 const fetch = require('node-fetch');
+const querystring = require('querystring');
 
 // Rôles Perm et Manager (Vos IDs réels)
 const PERM_ROLES = ['869611811962511451', '1426871180282822757', '869611883836104734', '877989445725483009', '869612027897839666', '1421439929052954674', '1426774369711165501', '1422640196020867113', '877904473983447101'];
@@ -58,16 +59,16 @@ function checkRoles(userRoles, targetRoles) {
 function createSessionCookie(token) {
     return cookie.serialize('session', token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV !== 'development',
+        // The secure flag should be TRUE in production (Netlify uses HTTPS)
+        secure: true, 
         sameSite: 'Lax',
-        maxAge: 7 * 24 * 60 * 60, // 7 jours
+        maxAge: 7 * 24 * 60 * 60, // 7 days
         path: '/',
-        // CORRECTION DE DOMAINE STRICTE POUR SERVERLESS
+        // FINAL FIX: Explicitly setting the domain to ensure the browser sends the cookie back
         domain: 'kinggenshub.netlify.app' 
     });
 }
 
-// Nouvelle fonction pour déboguer l'ID du serveur (inchangée)
 async function getGuildIdFromInvite() {
     try {
         const inviteCode = 'd7DMck3NuA'; 
@@ -75,12 +76,10 @@ async function getGuildIdFromInvite() {
         const data = await response.json();
         
         if (data.guild && data.guild.id) {
-            console.log(`DEBUG: Found Guild ID ${data.guild.id} from invite.`);
             return data.guild.id;
         }
         return null;
     } catch (error) {
-        console.error("Failed to fetch Guild ID from invite:", error);
         return null;
     }
 }
@@ -94,6 +93,6 @@ module.exports = {
     createSessionCookie,
     generateToken: () => crypto.randomBytes(32).toString('hex'),
     getGuildIdFromInvite,
-    fetch: require('node-fetch'),
-    querystring: require('querystring')
+    fetch,
+    querystring
 };
