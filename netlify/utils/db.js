@@ -60,15 +60,17 @@ function createSessionCookie(token) {
         httpOnly: true,
         secure: process.env.NODE_ENV !== 'development',
         sameSite: 'Lax',
-        maxAge: 7 * 24 * 60 * 60,
-        path: '/'
+        maxAge: 7 * 24 * 60 * 60, // 7 jours
+        path: '/',
+        // CORRECTION DE DOMAINE STRICTE POUR SERVERLESS
+        domain: 'kinggenshub.netlify.app' 
     });
 }
 
-// Nouvelle fonction pour déboguer l'ID du serveur
+// Nouvelle fonction pour déboguer l'ID du serveur (inchangée)
 async function getGuildIdFromInvite() {
     try {
-        const inviteCode = 'd7DMck3NuA'; // Le code de votre invitation
+        const inviteCode = 'd7DMck3NuA'; 
         const response = await fetch(`https://discord.com/api/v10/invites/${inviteCode}?with_counts=true&with_expiration=true`);
         const data = await response.json();
         
@@ -92,6 +94,6 @@ module.exports = {
     createSessionCookie,
     generateToken: () => crypto.randomBytes(32).toString('hex'),
     getGuildIdFromInvite,
-    fetch,
+    fetch: require('node-fetch'),
     querystring: require('querystring')
 };
