@@ -1,3 +1,5 @@
+// Fichier: netlify/utils/db.js
+
 const { Pool } = require('@neondatabase/serverless');
 const cookie = require('cookie');
 const crypto = require('crypto');
@@ -10,7 +12,7 @@ const PERM_ROLES = [
 ];
 const MANAGER_ROLES = ['869611811962511451', '877989445725483009'];
 
-// Le pool utilise automatiquement process.env.DATABASE_URL
+// Le pool utilise automatiquement process.env.DATABASE_URL de Neon
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
 async function query(sql, params = []) {
@@ -19,14 +21,12 @@ async function query(sql, params = []) {
         return result.rows;
     } catch (error) {
         console.error('Database query failed:', error);
-        // Lance une erreur pour que les fonctions appelantes la gèrent
         throw new Error('DB_ERROR'); 
     }
 }
 
 /**
  * Récupère l'utilisateur à partir du cookie de session.
- * CRITIQUE : Cette fonction DOIT VÉRIFIER la table 'sessions'.
  */
 async function getSessionUser(event) {
     const cookies = event.headers.cookie;
@@ -54,22 +54,18 @@ async function getSessionUser(event) {
 
         const user = users[0];
         
-        // La colonne is_manager est gérée lors de la connexion
+        // Retourne toutes les infos, y compris les statuts DB (is_manager)
         return {
             ...user,
-            is_manager: user.is_manager,
             session_token: sessionToken
         };
 
     } catch (error) {
         console.error("Session lookup error:", error);
-        return null; // Échec silencieux
+        return null;
     }
 }
 
-/**
- * Vérifie si un tableau de rôles Discord contient un rôle Perm ou Manager.
- */
 function checkRoles(userRoles, targetRoles) {
     return userRoles.some(role => targetRoles.includes(role));
 }
@@ -77,7 +73,7 @@ function checkRoles(userRoles, targetRoles) {
 function createSessionCookie(token) {
     return cookie.serialize('session', token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV !== 'development', // Utiliser HTTPS en production
+        secure: process.env.NODE_ENV !== 'development',
         sameSite: 'Lax',
         maxAge: 7 * 24 * 60 * 60, // 7 jours
         path: '/'
