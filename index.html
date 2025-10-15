@@ -1,16 +1,24 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    </head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KingGen Key System - Login</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
 <body class="discord-style">
     <div class="login-container">
-        <button onclick="redirectToDiscord()" class="discord-button">
-            <i class="fab fa-discord"></i> Login with Discord
-        </button>
+        <div class="card">
+            <h1>Welcome to KingGen Hub</h1>
+            <p>Please log in with Discord to access the key system.</p>
+            <button onclick="redirectToDiscord()" class="discord-button">
+                <i class="fab fa-discord"></i> Login with Discord
+            </button>
+        </div>
     </div>
     <script>
         const DISCORD_CLIENT_ID = '1427682761644183735';
-        // 🚨 CHANGEMENT OBLIGATOIRE : Utiliser l'URL de votre site Netlify pour la redirection
         const REDIRECT_URI = 'https://kinggenshub.netlify.app/.netlify/functions/auth_callback'; 
         const DISCORD_OAUTH_URL = `https://discord.com/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=identify%20guilds%20guilds.join`;
 
