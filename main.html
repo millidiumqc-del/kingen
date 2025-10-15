@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KingGen Key System - Home</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body class="discord-style app-layout">
+
+    <header class="topbar">
+        <div class="nav-links">
+            <a href="main.html" class="active">Home</a>
+            <a href="get_key.html">Get Key</a>
+            <a href="suggestion.html">Suggestion</a>
+        </div>
+        
+        <div class="user-menu" id="userMenu">
+            <img src="/images/default_avatar.png" alt="User Avatar" class="user-avatar" id="userAvatar">
+            <div class="user-info">
+                <span class="username" id="userName">Loading...</span>
+                <span class="status" id="userStatus">(Status)</span> 
+            </div>
+            
+            <div class="dropdown-menu" id="dropdownMenu">
+                <button id="manageKeysBtn" style="display: none;">Manage Keys</button>
+                <button id="disconnectBtn">Disconnect</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div id="page-content">
+            <div class="content-card">
+                <h2>Welcome to KingGen Key Hub</h2>
+                <p>This is the central hub for accessing the KingGen script. Connect with Discord to manage your key status and gain access.</p>
+                
+                <div class="info-section">
+                    <h3 style="color: #38b2ac;">PERM Key Access:</h3>
+                    <p>If your account has **Permanent** status, your key is active forever. Your Roblox User ID will be linked upon first execution. You can reset the linked ID on the "Get Key" page, but be aware of the 7-day cooldown.</p>
+                </div>
+
+                <div class="info-section" style="margin-top: 20px;">
+                    <h3 style="color: #f04747;">FREE Key Access:</h3>
+                    <p>If your account has **Free** status, you must complete the Linkvertise step once every 24 hours to generate a new key. The key will expire after 24 hours, requiring revalidation.</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
