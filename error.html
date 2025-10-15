@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Access Denied</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body class="discord-style">
+    <div class="login-container">
+        <div class="card" style="border-left: 5px solid #f04747;">
+            <h1 style="color: #f04747;"><i class="fas fa-exclamation-triangle"></i> Access Denied</h1>
+            <p id="errorMessage">You must be a member of the official KingGen Discord server to access this site.</p>
+            <a href="https://discord.gg/d7DMck3NuA" target="_blank" class="discord-button" style="background-color: #5865f2; margin-top: 20px;">
+                <i class="fab fa-discord"></i> Join Discord Server
+            </a>
+            <a href="index.html" class="discord-button" style="background-color: #474747; margin-top: 10px;">
+                <i class="fas fa-redo"></i> Try Again
+            </a>
+        </div>
+    </div>
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('msg') === 'join_discord') {
+             document.getElementById('errorMessage').textContent = "You must join the Discord server to proceed!";
+        } else if (params.get('msg') === 'not_manager') {
+             document.getElementById('errorMessage').textContent = "You do not have permission to access the management page.";
+        }
+    </script>
+</body>
+</html>
