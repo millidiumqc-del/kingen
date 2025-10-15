@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KingGen Key System - Manage Keys</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        .key-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        .key-table th, .key-table td { padding: 12px; border: 1px solid var(--bg-primary); text-align: left; }
+        .key-table th { background-color: var(--bg-primary); color: var(--text-color); }
+        .key-table tr:nth-child(even) { background-color: #3b3d43; } /* Slightly different background for rows */
+        .action-btn { padding: 5px 10px; border-radius: 4px; cursor: pointer; margin-right: 5px; }
+        .delete-btn { background-color: var(--discord-red); color: white; border: none; }
+        .edit-btn { background-color: #faa61a; color: white; border: none; }
+        .add-perm-btn { background-color: #3ba55d; color: white; border: none; }
+    </style>
+</head>
+<body class="discord-style app-layout">
+
+    <header class="topbar">
+        <div class="nav-links">
+            <a href="main.html">Home</a>
+            <a href="get_key.html">Get Key</a>
+            <a href="suggestion.html">Suggestion</a>
+        </div>
+        <div class="user-menu" id="userMenu">
+            <div class="user-info">
+                <span class="username" id="userName">Loading...</span>
+                <span class="status" id="userStatus">(Perm)</span>
+            </div>
+            <img src="images/default_avatar.png" alt="User Avatar" class="user-avatar" id="userAvatar">
+            
+            <div class="dropdown-menu" id="dropdownMenu">
+                <button id="manageKeysBtn" class="active">Manage Keys</button>
+                <button id="disconnectBtn">Disconnect</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="content-card">
+            <h2>Key Management Dashboard</h2>
+            <p class="text-muted" style="margin-bottom: 20px;">Manage Free and Permanent user keys.</p>
+
+            <h3>Add Permanent Key</h3>
+            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                <input type="text" id="newPermKey" placeholder="New Permanent Key Value" class="text-input" style="flex-grow: 1; padding: 10px; border-radius: var(--border-radius); border: 1px solid var(--bg-primary); background-color: var(--bg-primary); color: var(--text-color);">
+                <input type="text" id="initialRobloxID" placeholder="Initial Roblox User ID (Optional)" class="text-input" style="flex-grow: 1; padding: 10px; border-radius: var(--border-radius); border: 1px solid var(--bg-primary); background-color: var(--bg-primary); color: var(--text-color);">
+                <button id="addPermKeyBtn" class="action-btn add-perm-btn">Add Key</button>
+            </div>
+            <p id="addStatus" style="margin-bottom: 20px; font-weight: bold;"></p>
+
+            <h3>Temporary (24h) Keys</h3>
+            <table class="key-table">
+                <thead>
+                    <tr>
+                        <th>Key Value</th>
+                        <th>Discord ID</th>
+                        <th>Roblox ID</th>
+                        <th>Expires</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="freeKeysTableBody">
+                    <tr><td colspan="5" class="text-muted" style="text-align: center;">Loading keys...</td></tr>
+                </tbody>
+            </table>
+
+            <h3 style="margin-top: 40px;">Permanent Keys</h3>
+            <table class="key-table">
+                <thead>
+                    <tr>
+                        <th>Key Value</th>
+                        <th>Discord ID</th>
+                        <th>Roblox ID</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="permKeysTableBody">
+                    <tr><td colspan="4" class="text-muted" style="text-align: center;">Loading keys...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
