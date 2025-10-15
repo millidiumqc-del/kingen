@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KingGen Key System - Get Key</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body class="discord-style app-layout">
+
+    <header class="topbar">
+        <div class="nav-links">
+            <a href="main.html">Home</a>
+            <a href="get_key.html" class="active">Get Key</a>
+            <a href="suggestion.html">Suggestion</a>
+        </div>
+        <div class="user-menu" id="userMenu">
+            <img src="/images/default_avatar.png" alt="User Avatar" class="user-avatar" id="userAvatar">
+            <div class="user-info">
+                <span class="username" id="userName">Loading...</span>
+                <span class="status" id="userStatus">(Status)</span>
+            </div>
+            
+            <div class="dropdown-menu" id="dropdownMenu">
+                <button id="manageKeysBtn" style="display: none;">Manage Keys</button>
+                <button id="disconnectBtn">Disconnect</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="content-card">
+            <h2 id="keySectionTitle">Key Acquisition</h2>
+            
+            <div id="freeUserSection" style="display: none;">
+                <h3>Temporary Key (Free User)</h3>
+                <p id="keyStatusMessage" class="text-muted">You need to generate and validate your key. This key is valid for 24 hours.</p>
+                
+                <a id="linkvertiseLink" 
+                   href="javascript:void(0);" 
+                   target="_blank" 
+                   class="discord-button" 
+                   style="background-color: var(--discord-blue); margin-top: 15px; text-decoration: none; padding: 12px 20px;">
+                    <i class="fas fa-link"></i> Complete Linkvertise
+                </a>
+                
+                <button id="getKeyBtn" class="discord-button" style="background-color: #3ba55d; margin-top: 15px;">
+                    <i class="fas fa-key"></i> Get Key
+                </button>
+                
+                <div id="keyDisplay" style="margin-top: 20px; display: none;">
+                    <input type="text" id="currentKey" readonly class="text-input" value="YOUR_GENERATED_KEY" style="width: 70%; padding: 10px; border-radius: var(--border-radius); border: 1px solid var(--bg-primary); background-color: var(--bg-primary); color: var(--text-color);">
+                    <button id="copyKeyBtn" class="discord-button" style="background-color: #f04747; margin-left: 10px;">Copy</button>
+                    <p id="expirationTimer" class="text-muted" style="margin-top: 10px;"></p>
+                </div>
+            </div>
+
+            <div id="permUserSection" style="display: none;">
+                <h3>Permanent Key (Perm User)</h3>
+                <p class="text-muted">Your permanent key is automatically activated on first script execution. It is linked to your Roblox User ID and is valid forever.</p>
+
+                <h4>Roblox User ID Link Management</h4>
+                <p id="linkedRobloxIDStatus" class="text-muted" style="margin-bottom: 15px;">**Current Linked ID:** <span id="linkedRobloxID">Loading...</span></p>
+                
+                <p id="cooldownMessage" class="text-perm" style="margin-bottom: 15px; font-weight: bold;">Loading cooldown status...</p>
+                
+                <button id="resetRobloxBtn" class="discord-button" style="background-color: #faa61a; margin-top: 15px;" disabled>
+                    <i class="fas fa-redo-alt"></i> Reset Roblox ID Link
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
